@@ -183,6 +183,31 @@ struct SharedTests {
         #expect(bSees == 1)
     }
 
+    // MARK: - The self-gating seam (Sendable soundness: no public unchecked mutation lane)
+
+    @Test
+    func `the seam's own mutators self-gate — writes through Store-Protocol diverge`() {
+        var a: SharedColumn<Int> = makeShared(capacity: 2)
+        a.append(1)
+        a.append(2)
+        let b = a                                   // share the box
+        let bIDBefore = b._boxID
+        a[.zero] = 100                              // the SEAM subscript._modify, no ADT gate above
+        let diverged = (a._boxID != bIDBefore)
+        #expect(diverged)                           // the seam itself restored uniqueness
+        let aSees = a[.zero], bSees = b[.zero]
+        #expect(aSees == 100)
+        #expect(bSees == 1)
+
+        var c: SharedColumn<Int> = makeShared(capacity: 2)
+        c.append(7)
+        let d = c
+        let moved = c.move(at: .zero)               // seam move on a shared box
+        #expect(moved == 7)
+        let dSees = d[.zero]
+        #expect(dSees == 7)                         // sibling's element untouched by the move-out
+    }
+
     // MARK: - Sendable chain
 
     @Test

@@ -17,11 +17,11 @@ public import Index_Primitives
 /// W4 design, `PROPOSAL-tower-perfected-design.md` §1.3 / R-1 / R-2).
 ///
 /// `Shared` wraps a MOVE-ONLY buffer column in a refcounted box and is `Copyable` exactly when
-/// the ELEMENT is copyable (the stdlib `Array` posture): copies share the box until the first
-/// mutation restores uniqueness (`ensureUnique()`); `~Copyable`-element instantiations are
-/// move-only and statically unique (no CoW surface exists for them at all). Copyability flows
-/// from the COLUMN: `Array<Shared<E, …Linear>>` is the value-semantic column,
-/// `Array<…Linear>` stays the zero-cost move-only column.
+/// the ELEMENT is copyable: copies share the box until the first mutation restores uniqueness
+/// (`ensureUnique()`); `~Copyable`-element instantiations are move-only and statically unique
+/// (no CoW surface exists for them at all). Copyability flows from the COLUMN:
+/// `Array<Shared<E, …Linear>>` is the value-semantic column, `Array<…Linear>` stays the
+/// zero-cost move-only column.
 ///
 /// ## The SE-0427-forced spelling
 ///
@@ -69,6 +69,10 @@ public struct Shared<
 /// elements no clone path exists, so the instantiation is move-only by construction.
 extension Shared: Copyable where Element: Copyable, B: ~Copyable {}
 
-/// Sendable via the CoW discipline: a shared box is never mutated while shared — every mutation
-/// path restores uniqueness first.
+/// Sendable via the CoW discipline: every PUBLIC mutation path — the semantic surface
+/// (`Shared+Unique.swift`) AND the seam's own mutators (`Shared+Store.Protocol.swift`, which
+/// self-gate) — restores uniqueness before writing, so a shared box is never mutated while
+/// shared. The sole exception is the explicit `…AssumingUnique` spellings, whose names state
+/// the obligation the caller assumes; misusing one on a shared box is the documented unchecked
+/// lane, not the default path.
 extension Shared: Sendable where Element: ~Copyable, B: Sendable & ~Copyable {}
