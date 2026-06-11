@@ -59,4 +59,11 @@ internal final class Box<Wrapped: ~Copyable> {
     }
 }
 
+/// `@unchecked` is load-bearing: `wrapped` is mutable class state, which the compiler
+/// cannot prove Sendable. Soundness is the CoW discipline AROUND the box — every public
+/// mutation path restores uniqueness before writing (the `Shared: Sendable` note), both
+/// strategies are themselves `@Sendable` by stored type, and the only unchecked lane
+/// (`…AssumingUnique`) asserts uniqueness in debug. Adversarial record: the W2
+/// concurrency suites (detach races, sibling storms, span windows) under the arc's
+/// TSan gate — REPORT-arc-shared-soundness-W2.
 extension Box: @unchecked Sendable where Wrapped: Sendable & ~Copyable {}

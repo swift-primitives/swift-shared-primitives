@@ -23,6 +23,12 @@ import Hash_Primitives
 // The set/dictionary families' CoW column: ONE box around the COMPOSITE (dense plane +
 // index engine), one clone strategy (the dense clone + the engine's seed-preserving
 // plane copy — bucket positions stay valid verbatim).
+//
+// The `SendableMetatype` bound (SE-0470; recorded at `5b369cd`): the `@Sendable`
+// drain/clone strategies instantiate Element's `Hash.Key` machinery, so the element
+// METATYPE crosses isolation domains with the box. The linear/ring/generational
+// constructor pairs never touch element protocols inside their strategies, which is
+// why they carry no such bound — the asymmetry is the invariant, not an oversight.
 
 extension Shared where Element: ~Copyable, B: ~Copyable {
     /// Wraps an ordered hashed column as a statically-unique (move-only element) column.
