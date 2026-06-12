@@ -15,8 +15,8 @@ import Testing
 //
 // | Invariant (source site) | Disposition |
 // |---|---|
-// | `Shared: Sendable where B: Sendable` — sendability flows through the COLUMN, never the element directly (Shared.swift:79) | positive compile assertions below: heap-linear, bounded-linear |
-// | FINDING W2-F1 — the move-only rung is NOT Sendable today: `Storage.Contiguous`'s conditional Sendable bounds `Element: Sendable` WITHOUT `~Copyable` suppression (Storage.Contiguous.swift:187), implicitly requiring `Element: Copyable`; `Shared`'s own clause explicitly admits `Element: ~Copyable`, so the combinator's intent is blocked one tier down | recorded at the assertion site below + REPORT-arc-shared-soundness-W2 (PROPOSED fix in storage-primitives — ungranted here; not baked) |
+// | `Shared: Sendable where B: Sendable` — sendability flows through the COLUMN, never the element directly (Shared.swift:79) | positive compile assertions below: heap-linear, bounded-linear, move-only |
+// | FINDING W2-F1 (FIXED) — the move-only rung was NOT Sendable: `Storage.Contiguous`'s conditional Sendable bounded `Element: Sendable` without `~Copyable` suppression, implicitly requiring `Element: Copyable`, blocking `Shared`'s explicitly-admitted `Element: ~Copyable` one tier down | fix landed in storage-primitives (`7adfe73`, principal-ratified 2026-06-11); the repro line below is now the LIVE regression assertion |
 // | `Box: @unchecked Sendable where Wrapped: Sendable` (Box.swift:62) | rationale comment at the site (rider on this commit); behavioral evidence = suites 1–3 green under the arc's TSan gate |
 // | drain/clone strategies stored as `@Sendable` closures (Box.swift:36,43) | compile-enforced by the stored property types — no construction can smuggle a non-Sendable strategy into a Sendable box |
 // | every public mutation path gates BEFORE writing (Shared+Store.Protocol.swift:16–25 seam; Shared+Unique.swift append/removeLast/reserveCapacity/reallocate; Shared+withUnique.swift:44,60; Shared+Span.swift:42) | divergence + sibling-independence postconditions in suites 1–3, plus the pre-existing single-threaded gate tests |
@@ -55,14 +55,14 @@ struct SharedSendableSurfaceTests {
         requireSendable(heap)
         let bounded = SharedBounded<Int>(BoundedColumn<Int>(minimumCapacity: Index<Int>.Count(1)))
         requireSendable(bounded)
-        // FINDING W2-F1: the move-only rung does NOT compose today —
-        //     requireSendable(makeSharedMoveOnly(capacity: 1) as SharedColumn<Item>)
-        // fails: "requires that 'Item' conform to 'Copyable'", sourced from
-        // Storage.Contiguous.swift:187's Sendable clause (`Element: Sendable` with no
-        // `~Copyable` suppression). The line above IS the minimal repro; it stays
-        // commented until the storage-tier bound is ruled on (PROPOSE-don't-bake).
-        let moveOnlyLocal: SharedColumn<Item> = makeSharedMoveOnly(capacity: 1)
-        let n = moveOnlyLocal.count
+        // W2-F1 regression lock (FIXED): this exact line was the finding's minimal
+        // repro — it failed "requires that 'Item' conform to 'Copyable'" until
+        // storage-primitives' Sendable clause gained the `~Copyable` suppression
+        // (`7adfe73`; REPORT-arc-shared-soundness-W2 §2, principal-ratified
+        // 2026-06-11). Compiling = the whole checked chain admits move-only.
+        let moveOnly: SharedColumn<Item> = makeSharedMoveOnly(capacity: 1)
+        requireSendable(moveOnly)
+        let n = moveOnly.count
         #expect(n == Index<Item>.Count(0))
         #expect(Bool(true))
     }
