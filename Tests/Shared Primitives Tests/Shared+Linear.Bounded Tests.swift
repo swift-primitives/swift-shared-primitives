@@ -15,7 +15,7 @@ import Testing
 // through a CoW detach (the clone is capacity-preserving by contract).
 
 private typealias HeapStorage<E: ~Copyable> =
-    Storage<Memory.Allocator<Memory.Heap>.System>.Contiguous<E>
+    Storage<Memory.Allocator<Memory.Heap>>.Contiguous<E>
 
 private typealias BoundedLinear<E: ~Copyable> = Buffer<HeapStorage<E>>.Linear.Bounded
 

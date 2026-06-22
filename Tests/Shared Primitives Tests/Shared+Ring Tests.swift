@@ -14,7 +14,7 @@ import Testing
 // ratification spike (.handoffs/probes-2026-06-10/queue-family-spike/).
 
 private typealias HeapStorage<E: ~Copyable> =
-    Storage<Memory.Allocator<Memory.Heap>.System>.Contiguous<E>
+    Storage<Memory.Allocator<Memory.Heap>>.Contiguous<E>
 
 private typealias GrowableRing<E: ~Copyable> = Buffer<HeapStorage<E>>.Ring
 private typealias BoundedRing<E: ~Copyable> = Buffer<HeapStorage<E>>.Ring.Bounded

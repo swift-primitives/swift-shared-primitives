@@ -33,8 +33,8 @@ import Hash_Primitives
 extension Shared where Element: ~Copyable, B: ~Copyable {
     /// Wraps an ordered hashed column as a statically-unique (move-only element) column.
     @inlinable
-    public init(_ column: consuming Hash.Indexed<Buffer<Storage<Memory.Allocator<Memory.Heap>.System>.Contiguous<Element>>.Linear>)
-    where B == Hash.Indexed<Buffer<Storage<Memory.Allocator<Memory.Heap>.System>.Contiguous<Element>>.Linear>, Element: Hash.Key & SendableMetatype {
+    public init(_ column: consuming Hash.Indexed<Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear>)
+    where B == Hash.Indexed<Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear>, Element: Hash.Key & SendableMetatype {
         self.init(box: Box(column, drain: { $0.removeAll(keepingCapacity: true) }))
     }
 }
@@ -42,8 +42,8 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
 extension Shared where Element: Copyable, B: ~Copyable {
     /// Wraps an ordered hashed column as a shared (CoW-capable) column.
     @inlinable
-    public init(_ column: consuming Hash.Indexed<Buffer<Storage<Memory.Allocator<Memory.Heap>.System>.Contiguous<Element>>.Linear>)
-    where B == Hash.Indexed<Buffer<Storage<Memory.Allocator<Memory.Heap>.System>.Contiguous<Element>>.Linear>, Element: Hash.Key & SendableMetatype {
+    public init(_ column: consuming Hash.Indexed<Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear>)
+    where B == Hash.Indexed<Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear>, Element: Hash.Key & SendableMetatype {
         self.init(box: Box(
             column,
             drain: { $0.removeAll(keepingCapacity: true) },

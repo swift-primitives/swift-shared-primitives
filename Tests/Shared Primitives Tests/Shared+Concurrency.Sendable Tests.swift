@@ -26,10 +26,10 @@ import Testing
 // | negative direction: non-Sendable `B` ⇒ `Shared` not Sendable | compile-time NEGATIVE — untestable in-target by design; an expected-failure probe is the only spelling, recorded as rationale |
 
 private typealias HeapColumn<E: ~Copyable> =
-    Buffer<Storage<Memory.Allocator<Memory.Heap>.System>.Contiguous<E>>.Linear
+    Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<E>>.Linear
 private typealias SharedColumn<E: ~Copyable> = Shared<E, HeapColumn<E>>
 private typealias BoundedColumn<E: ~Copyable> =
-    Buffer<Storage<Memory.Allocator<Memory.Heap>.System>.Contiguous<E>>.Linear.Bounded
+    Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<E>>.Linear.Bounded
 private typealias SharedBounded<E: ~Copyable> = Shared<E, BoundedColumn<E>>
 
 private func makeShared<E>(capacity: UInt) -> SharedColumn<E> {

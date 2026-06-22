@@ -14,7 +14,7 @@ import Testing
 // Shared column to the span-bridged Collection lattice.
 
 private typealias HeapStorage<E: ~Copyable> =
-    Storage<Memory.Allocator<Memory.Heap>.System>.Contiguous<E>
+    Storage<Memory.Allocator<Memory.Heap>>.Contiguous<E>
 
 private typealias HeapColumn<E: ~Copyable> = Buffer<HeapStorage<E>>.Linear
 private typealias SharedColumn<E: ~Copyable> = Shared<E, HeapColumn<E>>

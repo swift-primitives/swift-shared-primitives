@@ -22,10 +22,10 @@ import Testing
 // postcondition is CAPACITY PRESERVATION through the concurrent detach).
 
 private typealias HeapColumn<E: ~Copyable> =
-    Buffer<Storage<Memory.Allocator<Memory.Heap>.System>.Contiguous<E>>.Linear
+    Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<E>>.Linear
 private typealias SharedColumn<E: ~Copyable> = Shared<E, HeapColumn<E>>
 private typealias BoundedColumn<E: ~Copyable> =
-    Buffer<Storage<Memory.Allocator<Memory.Heap>.System>.Contiguous<E>>.Linear.Bounded
+    Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<E>>.Linear.Bounded
 private typealias SharedBounded<E: ~Copyable> = Shared<E, BoundedColumn<E>>
 
 private func makeShared<E>(capacity: UInt) -> SharedColumn<E> {

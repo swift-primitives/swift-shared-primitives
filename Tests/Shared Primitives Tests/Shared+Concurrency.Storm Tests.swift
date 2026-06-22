@@ -18,7 +18,7 @@ import Testing
 // reader observes the seed on every iteration) + exact teardown accounting.
 
 private typealias HeapColumn<E: ~Copyable> =
-    Buffer<Storage<Memory.Allocator<Memory.Heap>.System>.Contiguous<E>>.Linear
+    Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<E>>.Linear
 private typealias SharedColumn<E: ~Copyable> = Shared<E, HeapColumn<E>>
 
 private func makeShared<E>(capacity: UInt) -> SharedColumn<E> {
