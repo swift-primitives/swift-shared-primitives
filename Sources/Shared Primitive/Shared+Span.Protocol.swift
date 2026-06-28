@@ -10,6 +10,7 @@
 // ===----------------------------------------------------------------------===//
 
 public import Span_Protocol_Primitives
+public import Ownership_Box_Primitives
 
 // MARK: - Span.Protocol (the lifetime-laundered span across the box hop)
 //
@@ -69,7 +70,7 @@ extension Shared: Span.`Protocol` where B: Span.`Protocol`, B: ~Copyable {
     public var span: Swift.Span<Element> {
         @_lifetime(borrow self)
         borrowing get {
-            let raw = unsafe Self._window(of: box.wrapped)
+            let raw = unsafe Self._window(of: box.unguarded)
             let typed = unsafe (raw.base?.assumingMemoryBound(to: Element.self))
                 ?? UnsafePointer<Element>(bitPattern: MemoryLayout<Element>.alignment).unsafelyUnwrapped
             let laundered = unsafe Swift.Span(_unsafeStart: typed, count: raw.base == nil ? 0 : raw.count)

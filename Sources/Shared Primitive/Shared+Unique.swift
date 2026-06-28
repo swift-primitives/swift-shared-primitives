@@ -14,6 +14,7 @@ public import Buffer_Linear_Primitive
 public import Storage_Contiguous_Primitives
 public import Memory_Heap_Primitives
 public import Memory_Allocator_Primitive
+public import Ownership_Box_Primitives
 
 // MARK: - Construction (pinned per column; drain + clone strategies are supplied here)
 //
@@ -28,7 +29,7 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     @inlinable
     public init(_ buffer: consuming Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear)
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear {
-        self.init(box: Box(buffer, drain: { $0.removeAll(keepingCapacity: true) }))
+        self.init(box: Ownership.Box(buffer, drain: { $0.removeAll(keepingCapacity: true) }))
     }
 }
 
@@ -37,7 +38,7 @@ extension Shared where Element: Copyable, B: ~Copyable {
     @inlinable
     public init(_ buffer: consuming Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear)
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear {
-        self.init(box: Box(
+        self.init(box: Ownership.Box(
             buffer,
             drain: { $0.removeAll(keepingCapacity: true) },
             clone: { $0.clone() }
@@ -51,7 +52,7 @@ extension Shared where Element: Copyable, B: ~Copyable {
     /// Whether this value holds the only reference to its backing box.
     @inlinable
     public var isUnique: Bool {
-        mutating get { isKnownUniquelyReferenced(&box) }
+        mutating get { box.isUnique }
     }
 }
 
@@ -69,15 +70,11 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     @inlinable
     @discardableResult
     public mutating func ensureUnique() -> Bool {
-        guard !isKnownUniquelyReferenced(&box) else { return false }
-        guard let clone = box._clone else {
-            // A shared box without a clone strategy cannot occur through the public
-            // constructors: sharing requires `Shared: Copyable`, which requires
-            // `Element: Copyable`, whose constructor captures the strategy.
-            preconditionFailure("Shared box is not unique but carries no clone strategy")
-        }
-        box = Box(clone(box.wrapped), drain: box._drain, clone: box._clone)
-        return true
+        // Delegated to the one CoW box ([MEM-SAFE-028] / [MEM-COPY-019]): restores uniqueness via
+        // the clone strategy captured at construction. A no-op on statically-unique columns; the
+        // shared-box-without-clone path is unreachable through the public constructors (sharing
+        // requires `Element: Copyable`, whose constructor captures the strategy).
+        box.ensureUnique()
     }
 }
 
@@ -89,7 +86,7 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     public mutating func append(_ element: consuming Element)
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear, Element: Copyable {
         ensureUnique()
-        box.wrapped.append(element)
+        box.unguarded.append(element)
     }
 
     /// Appends an element on the statically-unique (~Copyable-element) column.
@@ -101,8 +98,8 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     @inlinable
     public mutating func appendAssumingUnique(_ element: consuming Element)
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear {
-        assert(isKnownUniquelyReferenced(&box), "AssumingUnique on a shared box")
-        box.wrapped.append(element)
+        assert(box.isUnique, "AssumingUnique on a shared box")
+        box.unguarded.append(element)
     }
 
     /// Removes and returns the last element. CoW-checked for Copyable elements.
@@ -111,7 +108,7 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
         -> Element
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear, Element: Copyable {
         ensureUnique()
-        return box.wrapped.removeLast()
+        return box.unguarded.removeLast()
     }
 
     /// Removes and returns the last element on the statically-unique column.
@@ -120,8 +117,8 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     public mutating func removeLastAssumingUnique()
         -> Element
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear {
-        assert(isKnownUniquelyReferenced(&box), "AssumingUnique on a shared box")
-        return box.wrapped.removeLast()
+        assert(box.isUnique, "AssumingUnique on a shared box")
+        return box.unguarded.removeLast()
     }
 
     /// Ensures at least `minimumCapacity` slots, growing (uniquely) if needed.
@@ -129,7 +126,7 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     public mutating func reserveCapacity(_ minimumCapacity: Index<Element>.Count)
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear, Element: Copyable {
         ensureUnique()
-        box.wrapped.reserveCapacity(minimumCapacity)
+        box.unguarded.reserveCapacity(minimumCapacity)
     }
 
     /// Grows or shrinks storage to exactly `newCapacity`, preserving elements (uniquely).
@@ -137,6 +134,6 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     public mutating func reallocate(capacity newCapacity: Index<Element>.Count)
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear, Element: Copyable {
         ensureUnique()
-        box.wrapped.reallocate(capacity: newCapacity)
+        box.unguarded.reallocate(capacity: newCapacity)
     }
 }

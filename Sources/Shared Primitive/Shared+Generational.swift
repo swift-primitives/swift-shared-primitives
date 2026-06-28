@@ -15,6 +15,7 @@ public import Store_Primitive
 public import Memory_Heap_Primitives
 public import Memory_Allocator_Primitive
 public import Index_Primitives
+public import Ownership_Box_Primitives
 
 // MARK: - Construction, pinned for the GENERATIONAL column ([MEM-COPY-017] split)
 //
@@ -28,7 +29,7 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     @inlinable
     public init(_ store: consuming Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Element>)
     where B == Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Element> {
-        self.init(box: Box(store, drain: { $0.removeAll() }))
+        self.init(box: Ownership.Box(store, drain: { $0.removeAll() }))
     }
 }
 
@@ -37,7 +38,7 @@ extension Shared where Element: Copyable, B: ~Copyable {
     @inlinable
     public init(_ store: consuming Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Element>)
     where B == Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Element> {
-        self.init(box: Box(
+        self.init(box: Ownership.Box(
             store,
             drain: { $0.removeAll() },
             clone: { $0.clone() }
@@ -68,7 +69,7 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     public mutating func insert(_ element: consuming Element) -> Store.Generational.Handle
     where B == Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Element> {
         ensureUnique()
-        return box.wrapped.insert(element)
+        return box.unguarded.insert(element)
     }
 
     /// Removes the element at `handle` (moved out); `nil` if the handle is stale or invalid.
@@ -76,7 +77,7 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     public mutating func remove(_ handle: Store.Generational.Handle) -> Element?
     where B == Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Element> {
         ensureUnique()
-        return box.wrapped.remove(handle)
+        return box.unguarded.remove(handle)
     }
 
     /// Validated access to the element at `handle` (occupancy + generation checked).
@@ -85,10 +86,10 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     @inlinable
     public subscript(_ handle: Store.Generational.Handle) -> Element
     where B == Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Element> {
-        _read { yield box.wrapped[handle] }
+        _read { yield box.unguarded[handle] }
         _modify {
             ensureUnique()
-            yield &box.wrapped[handle]
+            yield &box.unguarded[handle]
         }
     }
 
@@ -96,7 +97,7 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     @inlinable
     public func contains(_ handle: Store.Generational.Handle) -> Bool
     where B == Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Element> {
-        box.wrapped.contains(handle)
+        box.unguarded.contains(handle)
     }
 
     /// Grows the wrapped slot universe to `slotCapacity`, preserving handles index-aligned
@@ -108,6 +109,6 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     public mutating func grow(to slotCapacity: Index<Element>.Count)
     where B == Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Element> {
         ensureUnique()
-        box.wrapped.grow(to: slotCapacity)
+        box.unguarded.grow(to: slotCapacity)
     }
 }

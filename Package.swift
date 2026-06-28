@@ -26,6 +26,7 @@ let package = Package(
         .package(url: "https://github.com/swift-primitives/swift-memory-allocation-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-index-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-span-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-ownership-primitives.git", branch: "main"),
     ],
     targets: [
         // MARK: - The ratified W4 column combinator (PROPOSAL-tower-perfected-design §1.3, R-1/R-2)
@@ -48,6 +49,7 @@ let package = Package(
                 .product(name: "Memory Allocator Primitive", package: "swift-memory-allocation-primitives"),
                 .product(name: "Index Primitives", package: "swift-index-primitives"),
                 .product(name: "Span Protocol Primitives", package: "swift-span-primitives"),
+                .product(name: "Ownership Box Primitives", package: "swift-ownership-primitives"),
             ]
         ),
 

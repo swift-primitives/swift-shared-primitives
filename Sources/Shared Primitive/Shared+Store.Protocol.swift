@@ -12,41 +12,43 @@
 public import Store_Protocol_Primitives
 public import Buffer_Protocol_Primitives
 public import Index_Primitives
+public import Ownership_Box_Primitives
 
 // MARK: - The seam (SELF-GATING mutators) + the count surface
 //
 // `Shared` forwards the 4-op seam through the box so seam-generic composition reaches the
 // shared column uniformly. Every MUTATING seam op restores uniqueness FIRST (`ensureUnique()`):
 // `Shared` is conditionally `Sendable`, so an unchecked public mutator would let two threads
-// holding copies of one box race through safe-looking code. The check is one
-// `isKnownUniquelyReferenced` branch per op — after the first restore in a batch the box IS
-// unique, so the branch is true and clone-free (batching economics survive). Reads stay free.
+// holding copies of one box race through safe-looking code. The check is one uniqueness branch
+// per op (delegated to `Ownership.Box.ensureUnique()`) — after the first restore in a batch the
+// box IS unique, so the branch is true and clone-free (batching economics survive). Reads stay
+// free.
 // The explicit `…AssumingUnique` spellings (`Shared+Unique.swift`) remain the ONLY unchecked
 // mutation lane, for proven-hot batches whose uniqueness the caller has already established.
 
 extension Shared: Store.`Protocol` where Element: ~Copyable, B: ~Copyable {
     @inlinable
-    public var capacity: Index<Element>.Count { box.wrapped.capacity }
+    public var capacity: Index<Element>.Count { box.unguarded.capacity }
 
     @inlinable
     public subscript(slot: Index<Element>) -> Element {
-        _read { yield box.wrapped[slot] }
+        _read { yield box.unguarded[slot] }
         _modify {
             ensureUnique()
-            yield &box.wrapped[slot]
+            yield &box.unguarded[slot]
         }
     }
 
     @inlinable
     public mutating func initialize(at slot: Index<Element>, to element: consuming Element) {
         ensureUnique()
-        box.wrapped.initialize(at: slot, to: element)
+        box.unguarded.initialize(at: slot, to: element)
     }
 
     @inlinable
     public mutating func move(at slot: Index<Element>) -> Element {
         ensureUnique()
-        return box.wrapped.move(at: slot)
+        return box.unguarded.move(at: slot)
     }
 
     /// The semantic mutation gate — restores uniqueness before generic seam writes.
@@ -67,5 +69,5 @@ extension Shared: Buffer.`Protocol` where Element: ~Copyable, B: ~Copyable {
 
     /// The number of live elements (forwarded from the wrapped buffer's cursor).
     @inlinable
-    public var count: Index<Element>.Count { box.wrapped.count }
+    public var count: Index<Element>.Count { box.unguarded.count }
 }

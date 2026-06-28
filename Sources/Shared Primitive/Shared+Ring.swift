@@ -15,6 +15,7 @@ public import Buffer_Ring_Bounded_Primitive
 public import Storage_Contiguous_Primitives
 public import Memory_Heap_Primitives
 public import Memory_Allocator_Primitive
+public import Ownership_Box_Primitives
 
 // MARK: - Construction, pinned per RING column ([MEM-COPY-017] split; ASK-C 2026-06-10)
 //
@@ -29,14 +30,14 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     @inlinable
     public init(_ buffer: consuming Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Ring)
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Ring {
-        self.init(box: Box(buffer, drain: { $0.removeAll() }))
+        self.init(box: Ownership.Box(buffer, drain: { $0.removeAll() }))
     }
 
     /// Wraps a bounded heap-ring buffer as a statically-unique (move-only element) column.
     @inlinable
     public init(_ buffer: consuming Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Ring.Bounded)
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Ring.Bounded {
-        self.init(box: Box(buffer, drain: { $0.remove.all() }))
+        self.init(box: Ownership.Box(buffer, drain: { $0.remove.all() }))
     }
 }
 
@@ -45,7 +46,7 @@ extension Shared where Element: Copyable, B: ~Copyable {
     @inlinable
     public init(_ buffer: consuming Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Ring)
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Ring {
-        self.init(box: Box(
+        self.init(box: Ownership.Box(
             buffer,
             drain: { $0.removeAll() },
             clone: { $0.clone() }
@@ -56,7 +57,7 @@ extension Shared where Element: Copyable, B: ~Copyable {
     @inlinable
     public init(_ buffer: consuming Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Ring.Bounded)
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Ring.Bounded {
-        self.init(box: Box(
+        self.init(box: Ownership.Box(
             buffer,
             drain: { $0.remove.all() },
             clone: { $0.clone() }

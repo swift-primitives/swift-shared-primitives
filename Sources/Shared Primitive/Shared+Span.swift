@@ -14,6 +14,7 @@ public import Buffer_Linear_Primitive
 public import Storage_Contiguous_Primitives
 public import Memory_Heap_Primitives
 public import Memory_Allocator_Primitive
+public import Ownership_Box_Primitives
 
 // MARK: - Span surface (scoped at the class hop)
 //
@@ -29,7 +30,7 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
         _ body: (Swift.Span<Element>) throws(Failure) -> R
     ) throws(Failure) -> R
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear {
-        try Self._withSpan(box.wrapped, body)
+        try Self._withSpan(box.unguarded, body)
     }
 
     /// Calls `body` with a mutable span over the live elements. CoW-checked FIRST for
@@ -40,7 +41,7 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     ) throws(Failure) -> R
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear, Element: Copyable {
         ensureUnique()
-        return try Self._withMutableSpan(&box.wrapped, body)
+        return try Self._withMutableSpan(&box.unguarded, body)
     }
 
     /// Mutable span on the statically-unique (~Copyable-element) column.
@@ -50,8 +51,8 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
         _ body: (inout Swift.MutableSpan<Element>) throws(Failure) -> R
     ) throws(Failure) -> R
     where B == Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear {
-        assert(isKnownUniquelyReferenced(&box), "AssumingUnique on a shared box")
-        return try Self._withMutableSpan(&box.wrapped, body)
+        assert(box.isUnique, "AssumingUnique on a shared box")
+        return try Self._withMutableSpan(&box.unguarded, body)
     }
 
     // The hop helpers: the buffer arrives as a PARAMETER (borrow / inout) — struct-containment

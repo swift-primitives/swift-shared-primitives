@@ -16,6 +16,7 @@ public import Storage_Contiguous_Primitives
 public import Memory_Heap_Primitives
 public import Memory_Allocator_Primitive
 public import Hash_Indexed_Primitive
+public import Ownership_Box_Primitives
 import Hash_Primitives
 
 // MARK: - Construction, pinned for the ORDERED HASHED column ([MEM-COPY-017] split)
@@ -35,7 +36,7 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     @inlinable
     public init(_ column: consuming Hash.Indexed<Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear>)
     where B == Hash.Indexed<Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear>, Element: Hash.Key & SendableMetatype {
-        self.init(box: Box(column, drain: { $0.removeAll(keepingCapacity: true) }))
+        self.init(box: Ownership.Box(column, drain: { $0.removeAll(keepingCapacity: true) }))
     }
 }
 
@@ -44,7 +45,7 @@ extension Shared where Element: Copyable, B: ~Copyable {
     @inlinable
     public init(_ column: consuming Hash.Indexed<Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear>)
     where B == Hash.Indexed<Buffer<Storage<Memory.Allocator<Memory.Heap>>.Contiguous<Element>>.Linear>, Element: Hash.Key & SendableMetatype {
-        self.init(box: Box(
+        self.init(box: Ownership.Box(
             column,
             drain: { $0.removeAll(keepingCapacity: true) },
             clone: { $0.clone() }

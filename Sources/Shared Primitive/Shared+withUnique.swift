@@ -9,6 +9,8 @@
 //
 // ===----------------------------------------------------------------------===//
 
+public import Ownership_Box_Primitives
+
 // MARK: - Scoped column access at the class hop (the ratified trio, ASK-C 2026-06-10)
 //
 // The 4+1-op seam carries element access, back-initialize, boundary moves, and the
@@ -42,7 +44,7 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
         _ body: (inout B) throws(Failure) -> R
     ) throws(Failure) -> R {
         ensureUnique()
-        return try body(&box.wrapped)
+        return try body(&box.unguarded)
     }
 
     /// The payload-threading form: moves `payload` INTO the column.
@@ -58,7 +60,7 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
         _ body: (inout B, consuming T) throws(Failure) -> R
     ) throws(Failure) -> R {
         ensureUnique()
-        return try body(&box.wrapped, payload)
+        return try body(&box.unguarded, payload)
     }
 
     /// Scoped BORROWING access to the column (reads never need uniqueness — no gate).
@@ -66,6 +68,6 @@ extension Shared where Element: ~Copyable, B: ~Copyable {
     public func withColumn<R: ~Copyable, Failure: Swift.Error>(
         _ body: (borrowing B) throws(Failure) -> R
     ) throws(Failure) -> R {
-        try body(box.wrapped)
+        try body(box.unguarded)
     }
 }

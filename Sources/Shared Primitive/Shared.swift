@@ -12,6 +12,7 @@
 public import Buffer_Protocol_Primitives
 public import Store_Protocol_Primitives
 public import Index_Primitives
+public import Ownership_Box_Primitives
 
 /// The CoW column combinator — where conditional copyability enters the tower (the ratified
 /// W4 design, `PROPOSAL-tower-perfected-design.md` §1.3 / R-1 / R-2).
@@ -32,15 +33,14 @@ public import Index_Primitives
 /// the semantics the phantom buffers faked through `S.Element` re-materialize here, where the
 /// element type is genuinely first-class.
 ///
-/// ## Teardown (the drain-box rule, R-5)
+/// ## Teardown (the drain-box rule, R-5, [MEM-SAFE-028])
 ///
-/// The box's class `deinit` OWNS element teardown (it drains the buffer through public mutating
-/// API, closed with `_fixLifetime(self)` — the stdlib `_ContiguousArrayStorage` idiom). Never
-/// rely on a struct deinit running behind a class hop: under `-O` +
-/// `isKnownUniquelyReferenced`, the devirtualized destroy of a generic-namespace-nested
-/// `~Copyable` struct OMITS the user deinit (the durable repro:
-/// `swift-institute/Experiments/cow-box-deinit-omission-miscompile`). With the drain, the
-/// storage oracle behind the box tears down an EMPTY buffer — correct whether or not it runs.
+/// Element teardown is owned by ``Ownership/Box``'s `Storage.deinit` — the one audited home for the
+/// drain-box rule. Each construction site here supplies the buffer's own `removeAll`-class drain;
+/// `Ownership.Box` drains through it before tearing down, so the storage oracle behind the box tears
+/// down an EMPTY buffer (correct whether or not it runs) and the `-O` devirtualized-destroy
+/// deinit-omission miscompile for generic-namespace-nested `~Copyable` columns is dodged (durable
+/// repro: `swift-institute/Experiments/cow-box-deinit-omission-miscompile`).
 @frozen
 public struct Shared<
     Element: ~Copyable,
@@ -50,16 +50,16 @@ public struct Shared<
     /// The single refcounted backing (internal — the unchecked lane lives behind the
     /// CoW-checked surface).
     @usableFromInline
-    internal var box: Box<B>
+    internal var box: Ownership.Box<B>
 
     @usableFromInline
-    internal init(box: Box<B>) {
+    internal init(box: consuming Ownership.Box<B>) {
         self.box = box
     }
 
     /// Identity of the current backing box — CoW divergence is observable here (test window).
     @usableFromInline
-    package var _boxID: ObjectIdentifier { ObjectIdentifier(box) }
+    package var _boxID: ObjectIdentifier { box.identity }
 }
 
 // MARK: - Conditional Conformances (co-located per [COPY-FIX-004])
